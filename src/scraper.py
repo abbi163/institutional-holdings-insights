@@ -7,7 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from bs4 import BeautifulSoup
-from .utils import (
+from utils import (
     clean_text, clean_number, parse_percentage, 
     parse_table_row, extract_quarter_from_text,
     format_holdings_data

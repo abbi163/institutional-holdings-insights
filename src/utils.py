@@ -51,9 +51,10 @@ def parse_table_row(row_element) -> List[str]:
     
     try:
         # Find all td or th elements in the row
-        cell_elements = row_element.find_elements_by_tag_name('td')
+        from selenium.webdriver.common.by import By
+        cell_elements = row_element.find_elements(By.TAG_NAME, 'td')
         if not cell_elements:
-            cell_elements = row_element.find_elements_by_tag_name('th')
+            cell_elements = row_element.find_elements(By.TAG_NAME, 'th')
         
         for cell in cell_elements:
             # Get text content and clean it
