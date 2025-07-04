@@ -67,8 +67,8 @@ Examples:
     parser.add_argument(
         '--output-dir',
         type=str,
-        default='../data',
-        help='Output directory for data files (default: ../data)'
+        default='./data',
+        help='Output directory for data files (default: ./data)'
     )
     
     parser.add_argument(

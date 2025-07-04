@@ -68,7 +68,20 @@ echo "🧪 Testing the scraper with AAPL ticker..."
 echo "This may take a few minutes..."
 echo ""
 
+# First run a simple test to verify setup
+echo "🔍 Running basic setup verification..."
+python test_simple.py
+
+if [[ $? -ne 0 ]]; then
+    echo "❌ Basic setup test failed. Please check the error messages above."
+    exit 1
+fi
+
+echo "✅ Basic setup verified successfully!"
+echo ""
+
 # Run the scraper for AAPL
+echo "🚀 Running the full scraper for AAPL..."
 cd src
 python main.py --ticker AAPL --output-format both --log-level INFO
 

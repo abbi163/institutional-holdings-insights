@@ -38,8 +38,42 @@ class InsiderMonkeyLogin:
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         
         # Install and setup ChromeDriver
-        service = Service(ChromeDriverManager().install())
-        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        try:
+            driver_path = ChromeDriverManager().install()
+            
+            # Fix for webdriver-manager path issues
+            if 'THIRD_PARTY_NOTICES' in driver_path or not driver_path.endswith('chromedriver'):
+                import os
+                import stat
+                
+                driver_dir = os.path.dirname(driver_path)
+                # Look for the actual chromedriver executable
+                possible_paths = [
+                    os.path.join(driver_dir, 'chromedriver'),
+                    os.path.join(os.path.dirname(driver_dir), 'chromedriver'),
+                    os.path.join(driver_dir, 'chromedriver-mac-arm64', 'chromedriver')
+                ]
+                
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        driver_path = path
+                        # Make sure it's executable
+                        os.chmod(driver_path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                        break
+            
+            logging.info(f"Using ChromeDriver at: {driver_path}")
+            service = Service(driver_path)
+            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+        except Exception as e:
+            logging.error(f"ChromeDriver setup failed: {e}")
+            # Fallback: try to use system chromedriver
+            try:
+                logging.info("Trying fallback to system ChromeDriver...")
+                self.driver = webdriver.Chrome(options=chrome_options)
+            except Exception as fallback_error:
+                logging.error(f"Fallback ChromeDriver also failed: {fallback_error}")
+                raise Exception("Could not initialize ChromeDriver. Please ensure Chrome is installed and ChromeDriver is available.")
         
         return self.driver
     
@@ -49,27 +83,37 @@ class InsiderMonkeyLogin:
             logging.info("Starting login process...")
             
             # Navigate to login page
-            self.driver.get('https://www.insidermonkey.com/login')
+            self.driver.get('https://www.insidermonkey.com/login/')
             time.sleep(3)
             
             # Wait for login form to load
-            wait = WebDriverWait(self.driver, 10)
+            wait = WebDriverWait(self.driver, 15)
             
-            # Find and fill username field
-            username_field = wait.until(
-                EC.presence_of_element_located((By.NAME, 'email'))
+            logging.info("Looking for email field...")
+            # Find and fill email field using the correct selector
+            email_field = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="email"]'))
             )
-            username_field.clear()
-            username_field.send_keys(self.username)
+            email_field.clear()
+            email_field.send_keys(self.username)
+            logging.info("Email field filled successfully")
             
             # Find and fill password field
-            password_field = self.driver.find_element(By.NAME, 'password')
+            logging.info("Looking for password field...")
+            password_field = wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'input[type="password"]'))
+            )
             password_field.clear()
             password_field.send_keys(self.password)
+            logging.info("Password field filled successfully")
             
             # Submit login form
-            login_button = self.driver.find_element(By.XPATH, '//button[@type="submit"]')
+            logging.info("Looking for submit button...")
+            login_button = wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="submit"]'))
+            )
             login_button.click()
+            logging.info("Login button clicked")
             
             # Wait for login to complete
             time.sleep(5)
@@ -82,8 +126,8 @@ class InsiderMonkeyLogin:
                 logging.error("Login failed - credentials may be incorrect")
                 return False
                 
-        except TimeoutException:
-            logging.error("Login timeout - page elements not found")
+        except TimeoutException as e:
+            logging.error(f"Login timeout - page elements not found: {e}")
             return False
         except NoSuchElementException as e:
             logging.error(f"Login element not found: {e}")
